@@ -22,7 +22,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
     let (kind, input) = match name.as_str() {
         "std.from" => {
-            let [source] = unpack::<1>(closure);
+            let [source, inline] = unpack::<2>(closure);
 
             return Ok(Ok(source));
         }

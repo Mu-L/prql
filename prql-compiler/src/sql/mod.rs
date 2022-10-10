@@ -4,6 +4,7 @@ mod anchor;
 mod codegen;
 mod context;
 mod distinct;
+mod sample_data;
 mod translator;
 
 pub use translator::translate;

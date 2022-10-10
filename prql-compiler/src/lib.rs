@@ -1677,6 +1677,24 @@ join y [foo == only_in_x]
     }
 
     #[test]
+    fn test_inline_csv() {
+        let query = r###"
+        from inline:csv """
+            a,b,c
+            1,2,3
+            4,5,6
+        """
+        filter [a > 2]
+        "###;
+
+        assert_display_snapshot!(compile(query).unwrap(),
+          @r###"
+          TODO
+        "###
+        );
+    }
+
+    #[test]
     fn test_casting() {
         assert_display_snapshot!(compile(r###"
         from x
