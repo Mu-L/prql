@@ -32,7 +32,7 @@ func in<bool> range value ->  s"{value} BETWEEN {range}"
 func coalesce value default -> s"COALESCE({value}, {default})"
 
 # Transform type definitions
-func from<table> `default_db.source`<table> inline:false -> null
+func from<table> `default_db.source`<table> -> null
 func select<table> columns<column> tbl<table> -> null
 func filter<table> condition<bool> tbl<table> -> null
 func derive<table> columns<column> tbl<table> -> null

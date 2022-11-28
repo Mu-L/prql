@@ -1,27 +1,17 @@
-use std::iter::zip;
-
-use crate::Result;
-
+use anyhow::Result;
 use itertools::Itertools;
 
-/// Sample data, or small in-query lookup tables.
-#[derive(Debug, Clone)]
-struct SampleData {
-    /// Column names
-    pub columns: Vec<String>,
-    /// Row-oriented data
-    // TODO: this should be generic, so it can contain any type (but at least
-    // numbers)
-    pub rows: Vec<Vec<String>>,
-}
+use std::iter::zip;
+
+use crate::ast::rq::RelationLiteral;
 
 // TODO: Can we dynamically get the types, like in pandas? We need to put
 // quotes around strings and not around numbers.
 // https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
-fn data_of_csv(csv: &str) -> Result<SampleData> {
+fn data_of_csv(csv: &str) -> Result<RelationLiteral> {
     let mut rdr = csv::Reader::from_reader(csv.as_bytes());
 
-    Ok(SampleData {
+    Ok(RelationLiteral {
         columns: rdr
             .headers()?
             .into_iter()
@@ -41,7 +31,7 @@ fn data_of_csv(csv: &str) -> Result<SampleData> {
 
 use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr};
 
-fn sql_of_sample_data(data: &SampleData) -> String {
+pub fn sql_of_sample_data(data: &RelationLiteral) -> sql_ast::Query {
     let mut selects = vec![];
 
     for row in &data.rows {
@@ -88,7 +78,7 @@ fn sql_of_sample_data(data: &SampleData) -> String {
             right: Box::new(select),
         });
 
-    let query = Box::new(sql_ast::Query {
+    sql_ast::Query {
         with: (None),
         body: Box::new(body),
         order_by: vec![],
@@ -96,19 +86,7 @@ fn sql_of_sample_data(data: &SampleData) -> String {
         offset: None,
         fetch: None,
         lock: None,
-    });
-    let cte = sql_ast::Cte {
-        alias: sql_ast::TableAlias {
-            name: sql_ast::Ident {
-                value: "sample".to_string(),
-                quote_style: None,
-            },
-            columns: vec![],
-        },
-        from: None,
-        query,
-    };
-    cte.to_string()
+    }
 }
 
 #[cfg(test)]
@@ -123,7 +101,7 @@ mod test {
         let csv = "a,b,c\n1,2,3\n4,5,6";
         let data = data_of_csv(csv).unwrap();
         assert_debug_snapshot!(data, @r###"
-        SampleData {
+        RelationLiteral {
             columns: [
                 "a",
                 "b",
