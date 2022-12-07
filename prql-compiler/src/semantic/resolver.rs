@@ -172,6 +172,14 @@ impl AstFold for Resolver {
 
                     DeclKind::Expr(expr) => expr.as_ref().clone(),
 
+                    DeclKind::InstanceOf(_) => {
+                        bail!(Error::new(Reason::Simple(
+                            "table instance cannot be referenced directly".to_string(),
+                        ))
+                        .with_span(span)
+                        .with_help("did you forget to specify the column name?"));
+                    }
+
                     DeclKind::NoResolve => Expr {
                         kind: ExprKind::Ident(ident),
                         ..node
@@ -757,11 +765,11 @@ mod test {
 
         assert_yaml_snapshot!(resolve_type(
             r#"
-            from employees
+            from e = employees
             join salaries [==emp_no]
-            group [emp_no, gender] (
+            group [e.emp_no, e.gender] (
                 aggregate [
-                    emp_salary = average salary
+                    emp_salary = average salaries.salary
                 ]
             )
             "#

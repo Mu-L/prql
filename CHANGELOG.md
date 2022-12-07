@@ -1,5 +1,28 @@
 # PRQL Changelog
 
+## 0.3.1 - 2022-12-03
+
+0.3.1 brings a couple of small improvements and fixes.
+
+**Features**:
+
+- Support for using s-strings for `from` (#1197, @aljazerzen)
+  ```
+  from s"SELECT * FROM employees WHERE foo > 5"
+  ```
+- Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
+
+**Fixes**:
+
+- Multiple columns with same name created (#1211, @aljazerzen)
+- Renaming via select breaks preceding sorting (#1204, @aljazerzen)
+- Same column gets selected multiple times (#1186, @mklopets)
+
+**Internal**:
+
+- Update Github Actions and Workflows to current version numbers
+  (and avoid using Node 12)
+
 ## 0.3.0 — 2022-11-29
 
 🎉 0.3.0 is the biggest ever change in PRQL's compiler, rewriting much of
@@ -33,8 +56,12 @@ We've had to make some modest breaking changes for 0.3:
   The existing approach is ambiguous to the compiler — `id` could be a boolean
   column.
 
-- The complier is stricter about table names; specifically table names which
-  contain periods need to be surrounded by backticks. This is rare.
+- _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
+
+  ```diff
+  -from public.sometable
+  +from `public.sometable`
+  ```
 
 **Features**:
 

@@ -9,7 +9,7 @@ mod utils;
 
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-pub use error::{format_error, FormattedError, Result, SourceLocation};
+pub use error::{ErrorMessage, IntoErrorMessage, Result, SourceLocation};
 pub use parser::parse;
 pub use sql::translate;
 
@@ -49,12 +49,27 @@ pub fn json_to_pl(json: &str) -> Result<Vec<Stmt>> {
 pub fn json_to_rq(json: &str) -> Result<Query> {
     Ok(serde_json::from_str(json)?)
 }
+
+// TODO: possibly collapse this with other functions. Deliberately not `pub`
+// currently. Ref discussion at https://github.com/prql/prql/pull/1182. Note
+// that the error message this produces doesn't have the file name /
+// `source_id`, because we don't know that at this point.
+#[allow(dead_code)]
+fn compile_to_error_message(prql: &str) -> Result<String, ErrorMessage> {
+    let res = compile(prql);
+    match res {
+        Ok(buf) => Ok(buf),
+        Err(e) => Err(e.into_error_message("", prql, false)),
+    }
+}
+
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
     use crate::{json_to_pl, parse, pl_to_json, pl_to_prql};
 
     use super::compile;
+    use super::compile_to_error_message;
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
@@ -106,10 +121,10 @@ mod test {
           n = a + b,
           r = a/n,
         ]
-        select temp_c = (temp - 32) * 3
+        select temp_c = (temp - 32) / 1.8
         "###).unwrap()), @r###"
         SELECT
-          (temp - 32) * 3 AS temp_c
+          (temp - 32) / 1.8 AS temp_c
         FROM
           x
         "###);
@@ -263,6 +278,7 @@ table UPPER = (
 )
 from UPPER
 join `some_schema.tablename` [==id]
+derive `from` = 5
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
@@ -272,7 +288,8 @@ join `some_schema.tablename` [==id]
         )
         SELECT
           "UPPER".*,
-          some_schema.tablename.*
+          some_schema.tablename.*,
+          5 AS "from"
         FROM
           "UPPER"
           JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
@@ -308,12 +325,11 @@ select `first name`
 
     #[test]
     fn test_sorts() {
-        let query = r###"
+        assert_display_snapshot!((compile(r###"
         from invoices
         sort [issued_at, -amount, +num_of_articles]
-        "###;
-
-        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        "###
+        ).unwrap()), @r###"
         SELECT
           *
         FROM
@@ -322,6 +338,28 @@ select `first name`
           issued_at,
           amount DESC,
           num_of_articles
+        "###);
+
+        assert_display_snapshot!((compile(r###"
+        from x
+        derive somefield = "something"
+        sort [somefield]
+        select [renamed = somefield]
+        "###
+        ).unwrap()), @r###"
+        WITH table_1 AS (
+          SELECT
+            'something' AS renamed,
+            'something' AS somefield
+          FROM
+            x
+          ORDER BY
+            somefield
+        )
+        SELECT
+          renamed
+        FROM
+          table_1
         "###);
     }
 
@@ -881,8 +919,7 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            name
+            *
           FROM
             employees
           LIMIT
@@ -1038,11 +1075,11 @@ select `first name`
     #[test]
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
-        let original_prql = r#"from employees
+        let original_prql = r#"from e=employees
 join salaries [==emp_no]
-group [emp_no, gender] (
+group [e.emp_no, e.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no]
@@ -1418,14 +1455,13 @@ take 20
         from e=employees
         take 10
         join salaries [==emp_no]
-        select [e.*, salary]
+        select [e.*, salaries.salary]
         "###;
         let result = compile(prql).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            emp_no
+            *
           FROM
             employees AS e
           LIMIT
@@ -1433,7 +1469,7 @@ take 20
         )
         SELECT
           table_1.*,
-          salary
+          salaries.salary
         FROM
           table_1
           JOIN salaries ON table_1.emp_no = salaries.emp_no
@@ -1448,7 +1484,7 @@ take 20
             join salaries side:left [salaries.emp_no == e.emp_no]
             group [e.emp_no] (
                 aggregate [
-                    emp_salary = average salary
+                    emp_salary = average salaries.salary
                 ]
             )
             select [emp_no, emp_salary]
@@ -1457,7 +1493,7 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
           e.emp_no,
-          AVG(salary) AS emp_salary
+          AVG(salaries.salary) AS emp_salary
         FROM
           employees AS e
           LEFT JOIN salaries ON salaries.emp_no = e.emp_no
@@ -1714,6 +1750,25 @@ join y [foo == only_in_x]
     }
 
     #[test]
+    /// Start testing some error messages. This can hopefully be expanded significantly.
+    fn test_errors() {
+        assert_display_snapshot!(compile_to_error_message(r###"
+        from x
+        select a
+        select b
+        "###).unwrap_err(),
+            @r###"
+        Error:
+        ╭─[:4:16]
+        │
+        4 │         select b
+        ·                ┬
+        ·                ╰── Unknown name b
+        ───╯
+        "###);
+    }
+
+    #[test]
     fn test_toposort() {
         // #1183
 
@@ -1804,26 +1859,34 @@ join y [foo == only_in_x]
     #[test]
     fn test_filter_and_select_changed_alias() {
         // #1185
-
         assert_display_snapshot!(compile(r###"
         from account
         filter account.name != null
         select [renamed_name = account.name]
         "###).unwrap(),
             @r###"
-        WITH table_1 AS (
-          SELECT
-            name AS renamed_name,
-            name
-          FROM
-            account
-        )
         SELECT
-          renamed_name
+          name AS renamed_name
         FROM
-          table_1
+          account
         WHERE
           name IS NOT NULL
+        "###
+        );
+
+        // #1207
+        assert_display_snapshot!(compile(r###"
+        from x
+        filter name != "Bob"
+        select name = name ?? "Default"
+        "###).unwrap(),
+            @r###"
+        SELECT
+          COALESCE(name, 'Default') AS name
+        FROM
+          x
+        WHERE
+          name <> 'Bob'
         "###
         );
     }
@@ -1878,5 +1941,24 @@ join y [foo == only_in_x]
           JOIN table_3 AS table_1 ON table_0.* = table_1.*
         "###
         );
+    }
+
+    #[test]
+    fn test_direct_table_references() {
+        compile(
+            r###"
+        from x
+        select s"{x}.field"
+        "###,
+        )
+        .unwrap_err();
+
+        compile(
+            r###"
+        from x
+        select x
+        "###,
+        )
+        .unwrap_err();
     }
 }

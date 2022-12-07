@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD};
+use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::error::Span;
 
@@ -33,6 +33,8 @@ pub enum DeclKind {
     LayeredModules(Vec<Module>),
 
     TableDecl(TableDecl),
+
+    InstanceOf(Ident),
 
     Column(usize),
 
@@ -120,7 +122,7 @@ impl Context {
                 // ambiguous
                 _ => {
                     let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                    return Err(format!("Ambiguous reference. Could be from any of {decls}"));
+                    return Err(format!("Ambiguous name. Could be from any of {decls}"));
                 }
             }
         }
@@ -151,28 +153,20 @@ impl Context {
                     .insert(ident.name.clone(), Decl::from(*wildcard_default));
 
                 // table columns
-                if let Some(table_ident) = module.instance_of_table.clone() {
-                    log::debug!("infering {ident} to be from table {table_ident}");
-                    self.infer_table_column(&table_ident, &ident.name)?;
+                if let Some(decl) = module.names.get(NS_SELF).cloned() {
+                    if let DeclKind::InstanceOf(table_ident) = decl.kind {
+                        log::debug!("infering {ident} to be from table {table_ident}");
+                        self.infer_table_column(&table_ident, &ident.name)?;
+                    }
                 }
 
                 Ok(module_ident + Ident::from_name(ident.name.clone()))
             }
 
-            // don't report ambiguous variable, database may be able to resolve them
+            // ambiguous
             _ => {
-                // insert default
-                let ident = NS_NO_RESOLVE.to_string();
-                self.root_mod
-                    .names
-                    .insert(ident, Decl::from(DeclKind::NoResolve));
-
-                log::debug!(
-                    "... could either of {:?}",
-                    decls.iter().map(|x| x.to_string()).collect_vec()
-                );
-
-                Ok(Ident::from_name(NS_NO_RESOLVE))
+                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                Err(format!("Ambiguous name. Could be from any of {decls}"))
             }
         }
     }
@@ -259,6 +253,7 @@ impl std::fmt::Display for DeclKind {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
             Self::TableDecl(TableDecl { frame, expr }) => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
             Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),

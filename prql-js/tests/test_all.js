@@ -1,12 +1,11 @@
 const assert = require("assert");
 const expect = require("chai").expect;
 const prql = require("../dist/node");
-const print = console.log;
 const employee_prql = `from employees
 join salaries [==emp_no]
-group [emp_no, gender] (
+group [employees.emp_no, employees.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no]
@@ -54,9 +53,9 @@ describe("prql-js", () => {
   });
 
   describe("to_json", () => {
-    it("should return valid json  from valid prql", () => {
-      const js = JSON.parse(prql.to_json(employee_prql));
-      assert.equal(js.nodes.length, 1);
+    it("should return valid json from valid prql", () => {
+      const json = JSON.parse(prql.to_json(employee_prql));
+      assert.equal(json.length, 1);
     });
 
     it("should throw an error on invalid prql", () => {
