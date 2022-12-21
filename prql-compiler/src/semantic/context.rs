@@ -82,12 +82,12 @@ impl Context {
         self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn declare_table(&mut self, table_def: TableDef, id: Option<usize>) {
-        let name = table_def.name;
+    pub fn declare_var(&mut self, var_def: VarDef, id: Option<usize>) {
+        let name = var_def.name;
         let path = vec![NS_DEFAULT_DB.to_string()];
         let ident = Ident { name, path };
 
-        let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
+        let frame = var_def.value.ty.clone().unwrap().into_table().unwrap();
         let columns = (frame.columns.into_iter())
             .map(|col| match col {
                 FrameColumn::Wildcard { .. } => RelationColumn::Wildcard,
@@ -95,7 +95,7 @@ impl Context {
             })
             .collect();
 
-        let expr = Some(table_def.value);
+        let expr = Some(var_def.value);
         let decl = Decl {
             declared_at: id,
             kind: DeclKind::TableDecl(TableDecl { columns, expr }),

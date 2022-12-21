@@ -3,7 +3,7 @@
 We can create a table — similar to a CTE in SQL — with `table`:
 
 ```prql
-table top_50 = (
+let top_50 = (
   from employees
   sort salary
   take 50
@@ -25,7 +25,7 @@ Currently it's not yet possible to have an
 <!-- TODO: find an example that we can't currently represent with PRQL -->
 
 ```prql_no_test
-table a = s"""
+let a = s"""
   SELECT *
   FROM employees
 """

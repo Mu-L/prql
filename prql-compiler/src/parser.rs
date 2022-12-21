@@ -111,16 +111,13 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 return_ty: return_type,
             })
         }
-        Rule::table_def => {
+        Rule::var_def => {
             let mut pairs = pair.into_inner();
 
             let name = parse_ident_part(pairs.next().unwrap());
-            let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
+            let value = Box::new(expr_of_parse_pair(pairs.next().unwrap())?);
 
-            StmtKind::TableDef(TableDef {
-                name,
-                value: Box::new(pipeline),
-            })
+            StmtKind::VarDef(VarDef { name, value })
         }
         _ => unreachable!("{pair}"),
     };
@@ -1450,10 +1447,10 @@ take 20
     #[test]
     fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(stmts_of_string(
-            "table newest_employees = (from employees)"
+            "let newest_employees = (from employees)"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               FuncCall:
@@ -1468,7 +1465,7 @@ take 20
 
         assert_yaml_snapshot!(stmts_of_string(
             r#"
-        table newest_employees = (
+        let newest_employees = (
           from employees
           group country (
             aggregate [
@@ -1480,7 +1477,7 @@ take 20
         )"#.trim())?,
          @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               Pipeline:
@@ -1540,7 +1537,7 @@ take 20
     #[test]
     fn test_parse_table_with_newlines() -> Result<()> {
         assert_yaml_snapshot!(stmts_of_string(
-          "table x = (
+          "let x = (
 
             from x_table
 
@@ -1551,7 +1548,7 @@ take 20
           from x"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: x
             value:
               Pipeline:

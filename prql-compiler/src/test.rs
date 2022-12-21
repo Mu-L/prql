@@ -312,7 +312,7 @@ fn test_quoting() {
     // GH-#822
     assert_display_snapshot!((compile(r###"
 prql sql_dialect:postgres
-table UPPER = (
+let UPPER = (
 from lower
 )
 from UPPER
@@ -1287,12 +1287,12 @@ take 20
 fn test_prql_to_sql_table() {
     // table
     let query = r#"
-    table newest_employees = (
+    let newest_employees = (
         from employees
         sort tenure
         take 50
     )
-    table average_salaries = (
+    let average_salaries = (
         from salaries
         group country (
             aggregate [
@@ -1427,7 +1427,7 @@ fn test_nonatomic() {
 fn test_nonatomic_table() {
     // A take, then two aggregates
     let query = r###"
-    table a = (
+    let a = (
         from employees
         take 50
         group country (aggregate [s"count(*)"])
@@ -1677,12 +1677,12 @@ fn test_literal() {
 fn test_same_column_names() {
     // #820
     let query = r###"
-table x = (
+let x = (
 from x_table
 select only_in_x = foo
 )
 
-table y = (
+let y = (
 from y_table
 select foo
 )
@@ -1799,11 +1799,11 @@ fn test_toposort() {
     // #1183
 
     assert_display_snapshot!(compile(r###"
-    table b = (
+    let b = (
         from somesource
     )
 
-    table a = (
+    let a = (
         from b
     )
 

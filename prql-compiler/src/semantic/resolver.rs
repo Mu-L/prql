@@ -65,21 +65,21 @@ impl AstFold for Resolver {
                     self.decls.declare_func(func_def, stmt.id);
                     continue;
                 }
-                StmtKind::TableDef(table_def) => {
-                    let table_def = self.fold_table(table_def)?;
-                    let mut table_def = TableDef {
-                        value: Box::new(Flattener::fold(*table_def.value)),
-                        ..table_def
+                StmtKind::VarDef(var_def) => {
+                    let var_def = self.fold_var_def(var_def)?;
+                    let mut var_def = VarDef {
+                        value: Box::new(Flattener::fold(*var_def.value)),
+                        ..var_def
                     };
 
                     // validate type
                     let expeceted = Ty::Table(Frame::default());
-                    let assumed_ty = validate_type(&table_def.value, &expeceted, || {
-                        Some(format!("table {}", table_def.name))
+                    let assumed_ty = validate_type(&var_def.value, &expeceted, || {
+                        Some(format!("let {}", var_def.name))
                     })?;
-                    table_def.value.ty = Some(assumed_ty);
+                    var_def.value.ty = Some(assumed_ty);
 
-                    self.decls.declare_table(table_def, stmt.id);
+                    self.decls.declare_var(var_def, stmt.id);
                     continue;
                 }
                 StmtKind::Pipeline(expr) => {

@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/tables-0.prql
 ---
-table top_50 = (
+let top_50 = (
   from employees
   sort salary
   take 50

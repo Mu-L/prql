@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/examples/misc-0.prql
 ---
-table parts = (
+let parts = (
   from seq_1_to_5
 )
 
