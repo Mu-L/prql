@@ -80,6 +80,50 @@ mod test {
     }
 
     #[test]
+    fn test_resolve() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from employees
+        select ![foo]
+        "###).unwrap(), @r###"
+        ---
+        def:
+          version: ~
+          other: {}
+        tables:
+          - id: 0
+            name: employees
+            relation:
+              kind:
+                ExternRef:
+                  LocalTable: employees
+              columns:
+                - Single: foo
+                - Wildcard
+        relation:
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: foo
+                      - 0
+                    - - Wildcard
+                      - 1
+                  name: employees
+              - Select:
+                  cols:
+                    - 0
+                  is_exclude: false
+              - Select:
+                  cols:
+                    - 0
+                  is_exclude: false
+          columns:
+            - Single: foo
+        "###)
+    }
+
+    #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         prql sql_dialect:mssql version:"0"
@@ -110,7 +154,9 @@ mod test {
                       - 0
                   name: employees
               - Select:
-                  - 0
+                  cols:
+                    - 0
+                  is_exclude: false
           columns:
             - Wildcard
         "### );
@@ -144,7 +190,9 @@ mod test {
                       - 0
                   name: employees
               - Select:
-                  - 0
+                  cols:
+                    - 0
+                  is_exclude: false
           columns:
             - Wildcard
         "### );

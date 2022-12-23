@@ -76,7 +76,7 @@ pub fn split_off_back(
         }
 
         // push into current pipeline
-        if !matches!(transform, Transform::Select(_)) {
+        if !matches!(transform, Transform::Select { .. }) {
             curr_pipeline_rev.push(transform);
         }
     }
@@ -127,7 +127,10 @@ pub fn split_off_back(
             output
         };
 
-        curr_pipeline_rev.push(Transform::Select(output));
+        curr_pipeline_rev.push(Transform::Select {
+            cols: output,
+            is_exclude: false,
+        });
     }
 
     let remaining_pipeline = if pipeline.is_empty() {
@@ -378,7 +381,7 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             cids
         }
 
-        Select(_) | From(_) | Concat(_) | Aggregate { .. } | Unique => return Vec::new(),
+        Select { .. } | From(_) | Concat(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
     let (max_complexity, selected) = match transform {

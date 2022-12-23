@@ -191,7 +191,7 @@ fn sql_select_query_of_pipeline(
     let projection = pipeline
         .pluck(|t| t.into_select())
         .into_only() // expect only one select
-        .map(|cols| translate_wildcards(&context.anchor, cols))
+        .map(|(cols, _)| translate_wildcards(&context.anchor, cols))
         .unwrap_or_default()
         .into_iter()
         .map(|id| translate_select_item(id, context))
@@ -387,10 +387,16 @@ fn split_into_atomics(
     // sometimes, additional columns will be added into select, which have to
     // be filtered out here, using additional CTE
     if let Some((pipeline, _)) = parts.last() {
-        let select_cols = pipeline.first().unwrap().as_select().unwrap();
+        let select_cols = pipeline.first().unwrap().as_select().unwrap().0;
 
         if select_cols.iter().any(|c| !outputs_cid.contains(c)) {
-            parts.push((vec![Transform::Select(outputs_cid)], select_cols.clone()));
+            parts.push((
+                vec![Transform::Select {
+                    cols: outputs_cid,
+                    is_exclude: false,
+                }],
+                select_cols.clone(),
+            ));
         }
     }
 
@@ -444,7 +450,10 @@ fn ensure_names(atomics: &[AtomicQuery], ctx: &mut AnchorContext) {
                         ctx.ensure_column_name(r.col);
                     }
                 }
-                Transform::Select(cids) => {
+                Transform::Select {
+                    cols: cids,
+                    is_exclude: _,
+                } => {
                     for cid in cids {
                         let _decl = &ctx.column_decls[cid];
                         //let name = match decl {

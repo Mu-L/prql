@@ -669,6 +669,7 @@ mod test {
 
     #[test]
     fn test_func_call_resolve() {
+        // @aljazerzen — should this test be here?
         assert_display_snapshot!(crate::test::compile(r#"
         from employees
         aggregate [

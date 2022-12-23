@@ -173,7 +173,13 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             compute: fold_cids(fold, compute)?,
         },
 
-        Select(ids) => Select(fold_cids(fold, ids)?),
+        Select {
+            cols: ids,
+            is_exclude,
+        } => Select {
+            cols: fold_cids(fold, ids)?,
+            is_exclude,
+        },
         Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
         Take(take) => Take(super::Take {

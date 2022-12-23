@@ -128,7 +128,7 @@ impl AnchorContext {
                     table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
-                Transform::Select(cols) => cols.clone(),
+                Transform::Select { cols, .. } => cols.clone(),
                 Transform::Aggregate { partition, compute } => {
                     [partition.clone(), compute.clone()].concat()
                 }

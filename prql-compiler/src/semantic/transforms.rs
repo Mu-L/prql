@@ -577,7 +577,9 @@ mod tests {
                       - 1
                   name: c_invoice
               - Select:
-                  - 0
+                  cols:
+                    - 0
+                  is_exclude: false
               - Take:
                   range:
                     start: ~
@@ -590,7 +592,9 @@ mod tests {
                     - 0
                   sort: []
               - Select:
-                  - 0
+                  cols:
+                    - 0
+                  is_exclude: false
           columns:
             - Single: invoice_no
         "###);
@@ -759,10 +763,12 @@ mod tests {
                   - direction: Desc
                     column: 0
               - Select:
-                  - 0
-                  - 1
-                  - 2
-                  - 3
+                  cols:
+                    - 0
+                    - 1
+                    - 2
+                    - 3
+                  is_exclude: false
           columns:
             - Single: issued_at
             - Single: amount

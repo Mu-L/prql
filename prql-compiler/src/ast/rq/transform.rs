@@ -11,7 +11,10 @@ use super::*;
 pub enum Transform {
     From(TableRef),
     Compute(Compute),
-    Select(Vec<CId>),
+    Select {
+        cols: Vec<CId>,
+        is_exclude: bool,
+    },
     Filter(Expr),
     Aggregate {
         partition: Vec<CId>,

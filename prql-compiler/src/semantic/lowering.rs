@@ -121,7 +121,7 @@ impl Lowerer {
                 let relation = self.lower_relation(expr)?;
 
                 let last_transform = &relation.kind.as_pipeline().unwrap().last().unwrap();
-                let cids = last_transform.as_select().unwrap().clone();
+                let cids = last_transform.as_select().unwrap().0.clone();
 
                 log::debug!("lowering inline table, columns = {:?}", relation.columns);
                 self.table_buffer.push(TableDecl {
@@ -240,6 +240,7 @@ impl Lowerer {
         let ty = expr.ty.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
+        dbg!(&expr);
         self.lower_pipeline(expr)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
@@ -285,8 +286,12 @@ impl Lowerer {
                 self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
+                dbg!(&assigns);
                 let select = self.declare_as_columns(assigns, false)?;
-                self.pipeline.push(Transform::Select(select));
+                self.pipeline.push(Transform::Select {
+                    cols: select,
+                    is_exclude: false,
+                });
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
@@ -406,7 +411,10 @@ impl Lowerer {
         let (cols, cids) = columns.into_iter().unzip();
 
         log::debug!("... cids={:?}", cids);
-        transforms.push(Transform::Select(cids));
+        transforms.push(Transform::Select {
+            cols: cids,
+            is_exclude: false,
+        });
 
         Ok(cols)
     }
