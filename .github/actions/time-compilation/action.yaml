@@ -9,14 +9,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ./.github/set_version.sh
+    - run: ./.github/workflows/scripts/set_version.sh
       shell: bash
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v2
       with:
+        prefix-key: ${{ env.version }}-${{ hashFiles('Cargo.lock') }}
         save-if: ${{ github.ref == 'refs/heads/main' }}
-        prefix-key: ${{ env.version }}
       # 'true' seems to require quotes (and using a bare `inputs.use_cache`
       # doesn't work); I'm really not sure why. There are some issues on the
       # interwebs around this, but I couldn't find one that explained it.
@@ -25,13 +25,15 @@ runs:
       shell: bash
       run: rm -rf target/cargo-timings
     - name: 🏭 Compile
-      uses: richb-hanover/cargo@v1.1.0
+      uses: clechasseur/rs-cargo@v2
       with:
         command: build
         args: --timings --all-targets
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: cargo-timing.html
+        name:
+          cargo-timing-${{ inputs.use_cache == 'true' && 'cache' || 'no_cache'
+          }}.html
         path: target/cargo-timings/cargo-timing-*.html
         if-no-files-found: error
         # Only upload if a) we got a cache hit or b) we didn't want to use the cache anyway

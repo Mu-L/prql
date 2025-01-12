@@ -1,37 +1,41 @@
 name: test-elixir
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-elixir/**"
-      - ".github/workflows/test-elixir.yaml"
   workflow_call:
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-22.04"]'
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-elixir
-  cancel-in-progress: true
+    inputs:
+      oss:
+        type: string
+        default: '["ubuntu-22.04"]'
 
 defaults:
   run:
-    working-directory: bindings/prql-elixir
+    working-directory: prqlc/bindings/elixir
 
 env:
   MIX_ENV: test
+  # We need consistent env vars across all workflows for the cache to work
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   test:
     strategy:
       matrix:
-        # Currently disabling mac tests, see prql-elixir/readme.md for more details.
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(inputs.oss) }}
         otp: ["25.1.2"]
         elixir: ["1.14.2"]
     runs-on: ${{matrix.os}}
     steps:
       # Step: Check out the code.
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir on Windows or Linux
@@ -50,11 +54,11 @@ jobs:
       # Step: Define how to cache deps. Restores existing cache if present.
       - name: Cache deps
         id: cache-deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-elixir-deps
         with:
-          path: prql-elixir/deps
+          path: elixir/deps
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
@@ -66,11 +70,11 @@ jobs:
       # project's downloaded deps every run.
       - name: Cache compiled build
         id: cache-build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-compiled-build
         with:
-          path: prql-elixir/_build
+          path: elixir/_build
           key:
             ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}

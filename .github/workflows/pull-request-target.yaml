@@ -3,6 +3,8 @@ name: pull-request-target
 on:
   pull_request_target:
     types: [opened, edited, synchronize, labeled, closed]
+    branches:
+      - "*"
 
 concurrency:
   # Generally we use `github.ref`, but in pull_request_target, that's always `main`.
@@ -12,7 +14,7 @@ concurrency:
 jobs:
   main:
     name: Validate PR title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: amannn/action-semantic-pull-request@v5
         env:
@@ -23,7 +25,7 @@ jobs:
           # - "internal" for code quality / ergonomics improvements
           # - "devops" for developer ergonomics
           # - "web" for playground / website (but not docs)
-          # - "tweak" for tiny changes
+          # - "refine" for tiny changes
           types: |
             feat
             fix
@@ -40,12 +42,12 @@ jobs:
             internal
             devops
             web
-            tweak
+            refine
 
   backport:
     # Backport to `web` branch on `pr-backport-web`
     name: Backport to `web` branch
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Confirm that it's merged and has a label to ensure nothing is backported without oversight
     if: |
       github.event.pull_request.merged
@@ -60,8 +62,41 @@ jobs:
       - uses: tibdex/backport@v2
         with:
           # This is a personal access token from the @prql-bot
-          github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          github_token: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}
           # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
-          # We only use `website` atm
+          # We only use `web` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"
           title_template: "chore: Backport #<%= number%> to `web`"
+
+  automerge:
+    runs-on: ubuntu-22.04
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    # Check it's not coming from a fork — both to save running and
+    # in case someone spoofed an `actor` name.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+
+    steps:
+      # Get number of commits in the PR
+      - id: commit-count
+        run: >
+          echo "commit-count=$(curl -s -H 'Authorization: token ${{ github.token
+          }}' https://api.github.com/repos/prql/prql/pulls/${{
+          github.event.pull_request.number }}/commits | jq 'length')"
+          >>"$GITHUB_OUTPUT"
+      - if:
+          # - It's dependabot
+          # - or there's only one commit — so nothing has made further changes and
+          #   - or it's prql-bot
+          #   - or it's a pre-commit-ci update
+          github.actor == 'dependabot[bot]' ||
+          (steps.commit-count.outputs.commit-count == '1' && (github.actor ==
+          'prql-bot' || github.actor == 'pre-commit-ci[bot]'))
+        run:
+          gh pr merge --auto --squash --delete-branch ${{
+          github.event.pull_request.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRQL_BOT_GITHUB_TOKEN }}

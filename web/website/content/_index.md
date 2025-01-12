@@ -34,9 +34,9 @@ why_prql_section:
           error messages _(in progress)_
     - title: For tools
       content:
-        - PRQL is a stable foundation to build on; we're open-source and will
+        - PRQL's vision is a foundation to build on; we're open-source and will
           never have a commercial product
-        - PRQL is a single secular standard which tools can target
+        - PRQL is growing into a single secular standard which tools can target
         - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
@@ -147,7 +147,7 @@ tools_section:
         "Online in-browser playground that compiles PRQL to SQL as you type."
 
     - link: https://pyprql.readthedocs.io/
-      label: "PyPrql"
+      label: "pyprql"
       text: |
         Provides Jupyter/IPython cell magic and Pandas accessor.
 
@@ -162,52 +162,82 @@ tools_section:
 
         `brew install prqlc`
 
+        `winget install prqlc`
+
 integrations_section:
   enable: true
   title: "Integrations"
   sections:
+    - label: "ClickHouse"
+      link: https://clickhouse.com/docs/en/guides/developer/alternative-query-languages
+      text: |
+        ClickHouse natively supports PRQL with
+
+        `SET dialect = 'prql'`
+
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
       text:
-        "PyPrql contains a Jupyter extension, which executes a PRQL cell against
+        "pyprql contains a Jupyter extension, which executes a PRQL cell against
         a database. It can also set up an in-memory DuckDB instance, populated
         with a pandas DataFrame."
 
-    - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
-      text: Extension with syntax highlighting and an upcoming language server.
+    - label: "DuckDB"
+      link: https://github.com/ywelsch/duckdb-prql
+      text: A DuckDB extension to execute PRQL
+
+    - label: "QStudio"
+      link: https://www.timestored.com/qstudio/prql-ide
+      text:
+        "QStudio is a SQL GUI that lets you browse tables, run SQL scripts, and
+        chart and export the results. QStudio runs on Windows, macOS and Linux,
+        and works with every popular database including mysql, postgresql,
+        mssql, kdb..."
 
     - label: "Prefect"
       link: https://prql-lang.org/book/project/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
 
-    - label: "DuckDB"
-      link: https://github.com/ywelsch/duckdb-prql
-      text: A DuckDB extension to execute PRQL
+    - label: Visual Studio Code
+      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
+      text: Extension with syntax highlighting and live SQL compilation.
+
+    - label: "PostgreSQL"
+      link: https://github.com/kaspermarstal/plprql
+      text: Write PRQL functions in PostgreSQL
+
+    - label: "Databend"
+      link: https://www.databend.com/blog/2024-04-03-databend-integrates-prql/
+      text: Databend natively supports PRQL
 
 bindings_section:
   enable: true
   title: "Bindings"
   section_id: "bindings"
   sections:
-    - link: https://pypi.org/project/prql-python
-      label: "prql-python"
-      text: Python bindings for prql-compiler.
+    - link: https://pypi.org/project/prqlc
+      label: "prqlc-python"
+      text: Python bindings for prqlc.
 
-    - link: https://www.npmjs.com/package/prql-js
-      label: "prql-js"
-      text: "JavaScript bindings for prql-compiler."
+    - link: https://www.npmjs.com/package/prqlc
+      label: "prqlc-js"
+      text: "JavaScript bindings for prqlc."
 
     - link: https://CRAN.R-project.org/package=prqlr
       label: "prqlr"
-      text: "R bindings for prql-compiler."
+      text: "R bindings for prqlc."
 
-    - link: "https://crates.io/crates/prql-compiler"
-      label: "prql-compiler"
+    - link: "https://crates.io/crates/prqlc"
+      label: "prqlc"
       text: |
-        Reference compiler implementation, written in Rust. Transpile, format and annotate PRQL queries.
+        Compiler implementation, written in Rust. Compile, format & annotate PRQL queries.
 
-comments_section:
+    - link: https://prql-lang.org/book/project/bindings/index.html
+      label: Others
+      text: |
+        Java, C, C++, Elixir, .NET, and PHP have unsupported or nascent bindings.
+
+testimonials_section:
   enable: true
   title: "What people are saying"
   # The testimonials are in data/testimonials.yaml.
