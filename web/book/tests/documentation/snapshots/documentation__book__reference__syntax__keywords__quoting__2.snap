@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "prql target:sql.bigquery\n\nfrom `project-foo.dataset.table`\njoin `project-bar.dataset.table` (==col_bax)\n"
+snapshot_kind: text
 ---
 SELECT
   `project-foo.dataset.table`.*,
@@ -8,4 +9,3 @@ SELECT
 FROM
   `project-foo.dataset.table`
   JOIN `project-bar.dataset.table` ON `project-foo.dataset.table`.col_bax = `project-bar.dataset.table`.col_bax
-

@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\nfilter first_name == null\nfilter null != last_name\n"
+snapshot_kind: text
 ---
 SELECT
   *
@@ -9,4 +10,3 @@ FROM
 WHERE
   first_name IS NULL
   AND last_name IS NOT NULL
-

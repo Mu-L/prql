@@ -1,6 +1,7 @@
 ---
 source: web/book/tests/documentation/book.rs
 expression: "from employees\njoin side:left positions (employees.id==positions.employee_id)\n"
+snapshot_kind: text
 ---
 SELECT
   employees.*,
@@ -8,4 +9,3 @@ SELECT
 FROM
   employees
   LEFT JOIN positions ON employees.id = positions.employee_id
-

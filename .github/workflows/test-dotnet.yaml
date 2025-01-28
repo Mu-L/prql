@@ -1,36 +1,32 @@
 name: test-dotnet
 
 on:
-  pull_request:
-    paths:
-      - "bindings/prql-dotnet/**"
-      - "bindings/prql-lib/**"
-      - ".github/workflows/test-dotnet.yaml"
   workflow_call:
   workflow_dispatch:
 
-concurrency:
-  # See notes in `pull-request.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-dotnet
-  cancel-in-progress: true
+# We need consistent env vars across all workflows for the cache to work
+env:
+  CARGO_TERM_COLOR: always
+  CLICOLOR_FORCE: 1
+  RUSTFLAGS: "-C debuginfo=0"
+  RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - name: 🏗 Build prql-lib
-        run: cargo build
-        working-directory: bindings/prql-lib
+        uses: actions/checkout@v4
+      - name: 🏗 Build prqlc-c
+        run: cargo build --package prqlc-c
       - name: 🔧 Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 7
       - name: 🧪 Build and test
-        working-directory: bindings
+        working-directory: prqlc/bindings
         run: |
-          dotnet build prql-dotnet
-          cp ../target/debug/libprql_lib.* prql-dotnet/PrqlCompiler/bin/Debug/net*/
-          cp ../target/debug/libprql_lib.* prql-dotnet/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test prql-dotnet
+          dotnet build dotnet
+          cp ../../target/debug/libprqlc_c.* dotnet/PrqlCompiler/bin/Debug/net*/
+          cp ../../target/debug/libprqlc_c.* dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+          dotnet test dotnet
